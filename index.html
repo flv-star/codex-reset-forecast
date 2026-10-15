@@ -358,11 +358,12 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     var daily=[];for(var i=0;i<35;i++)daily.push(condP(m,e,(t0+i*D-m.last.ms)/D,(t0+(i+1)*D-m.last.ms)/D));
 
     var kn=kst(now);$("nowLabel").textContent=kn.mo+"/"+kn.da+" ("+WD[kn.wd]+") "+pad(kn.h)+":"+pad(kn.mi)+" KST";
-    var md0=mood(daily[0]);
+    var resetToday=day0(m.last.ms)===t0;
+    var md0=resetToday?3:mood(daily[0]);
     $("face").innerHTML=FACES[md0];$("extras").innerHTML=EXTRAS[md0];
-    $("bubble").textContent=ANSWERS[md0][1];
-    $("oToday").textContent=pct(daily[0]);$("o72").textContent=pct(condP(m,e,e,e+3));$("o7").textContent=pct(condP(m,e,e,e+7));
-    var fh=Math.round(30+Math.min(daily[0]/0.35,1)*170);
+    $("bubble").textContent=resetToday?"오늘 리셋 왔어요! 마음껏 쓰세요":ANSWERS[md0][1];
+    $("oToday").textContent=resetToday?"완료!":pct(daily[0]);$("o72").textContent=pct(condP(m,e,e,e+3));$("o7").textContent=pct(condP(m,e,e,e+7));
+    var fh=resetToday?200:Math.round(30+Math.min(daily[0]/0.35,1)*170);
     requestAnimationFrame(function(){var r=$("fillRect");r.setAttribute("y",String(260-fh));r.setAttribute("height",String(fh));});
 
     var q50=condQ(m,e,0.5),q10=condQ(m,e,0.1),q90=condQ(m,e,0.9);
@@ -373,7 +374,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     $("cdLbl").textContent=bi===0?"바로 오늘이에요!":"그날까지";
     $("nextRange").textContent="이날 리셋될 확률 "+pct(daily[bi])+"로 가장 높아요 · 10번 중 8번은 "+md(m.last.ms+q10*D)+" ~ "+md(m.last.ms+q90*D)+" 사이에 와요";
 
-    $("cLast").textContent=e<1?Math.round(e*24)+"시간 전":e.toFixed(1)+"일 전";
+    $("cLast").textContent=e<1/24?"방금 전":e<1?Math.round(e*24)+"시간 전":e.toFixed(1)+"일 전";
     $("cTotal").textContent=evs.length+"회";
     var gs=[];for(var j=1;j<m.reg.length;j++)gs.push((m.reg[j].ms-m.reg[j-1].ms)/D);
     $("cAvg").textContent=((evs[evs.length-1].ms-evs[0].ms)/D/(evs.length-1)).toFixed(1)+"일";
@@ -385,13 +386,13 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     var best=bi;
     var top=Math.max.apply(null,daily.slice(0,7))||1;
     $("week").innerHTML=daily.slice(0,7).map(function(p,i){
-      var k=kst(t0+i*D+H),h=Math.max(4,Math.round(p/top*46));
+      var k=kst(t0+i*D+H),h=i===0&&resetToday?46:Math.max(4,Math.round(p/top*46));
       return '<div class="bat'+(i===best?" best":"")+'">'+(i===best?'<span class="crown">유력</span>':'')+
         '<span class="dw'+(i===0?" today-tag":"")+'">'+(i===0?"오늘":WD[k.wd])+'</span><span class="dd">'+k.mo+'/'+k.da+'</span>'+
         '<svg viewBox="0 0 42 70" aria-hidden="true"><rect x="14" y="1" width="14" height="7" rx="3" fill="var(--ink)"/>'+
         '<rect x="3" y="6" width="36" height="61" rx="11" fill="var(--card)" stroke="var(--ink)" stroke-width="3.5"/>'+
         '<rect x="8.5" y="'+(61.5-h)+'" width="25" height="'+h+'" rx="6" fill="'+(i===best?"var(--mint)":p>=0.06?"var(--mint)":"var(--dot)")+'" opacity="'+(i===best?1:0.75)+'"/></svg>'+
-        '<span class="p">'+pct(p)+'</span><span class="l">'+label(p)+'</span></div>';}).join("");
+        '<span class="p">'+(i===0&&resetToday?'완료':pct(p))+'</span><span class="l">'+(i===0&&resetToday?'리셋 완료!':label(p))+'</span></div>';}).join("");
 
     // dot calendar
     var map={};evs.forEach(function(x){var key=day0(x.ms);if(!map[key]||x.kind===R)map[key]=x.kind;});
