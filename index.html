@@ -205,11 +205,11 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     </div>
     <div class="talk">
       <span class="bubble" id="bubble">…</span>
-      <p class="lbl">가장 유력한 다음 리셋</p>
+      <p class="lbl">리셋이 가장 유력한 날</p>
       <p class="answer"><span id="nextDate">…</span></p>
       <p class="range" id="nextRange"></p>
       <div class="next">
-        <p class="lbl">예상 시점까지</p>
+        <p class="lbl" id="cdLbl">그날까지</p>
         <div class="clock" aria-label="예상 시점까지 남은 시간">
           <div><b id="cd-d">0</b><span>일</span></div>
           <div><b id="cd-h">00</b><span>시간</span></div>
@@ -366,9 +366,12 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     requestAnimationFrame(function(){var r=$("fillRect");r.setAttribute("y",String(260-fh));r.setAttribute("height",String(fh));});
 
     var q50=condQ(m,e,0.5),q10=condQ(m,e,0.1),q90=condQ(m,e,0.9);
-    target=m.last.ms+q50*D;
-    $("nextDate").textContent=md(target)+" ("+WD[kst(target).wd]+") "+part(target);
-    $("nextRange").textContent="10번 중 8번은 "+md(m.last.ms+q10*D)+" ~ "+md(m.last.ms+q90*D)+" 사이에 와요";
+    // Headline = the single KST day with the highest odds, same pick as the weekly strip.
+    var bi=0;for(var z=1;z<7;z++)if(daily[z]>daily[bi])bi=z;
+    var bd=t0+bi*D;target=Math.max(bd,now);
+    $("nextDate").textContent=(bi===0?"오늘, ":"")+md(bd+H)+" ("+WD[kst(bd+H).wd]+")";
+    $("cdLbl").textContent=bi===0?"바로 오늘이에요!":"그날까지";
+    $("nextRange").textContent="이날 리셋될 확률 "+pct(daily[bi])+"로 가장 높아요 · 10번 중 8번은 "+md(m.last.ms+q10*D)+" ~ "+md(m.last.ms+q90*D)+" 사이에 와요";
 
     $("cLast").textContent=e<1?Math.round(e*24)+"시간 전":e.toFixed(1)+"일 전";
     $("cTotal").textContent=evs.length+"회";
@@ -379,7 +382,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     $("cChal").textContent=cd>=1&&cd<=28?"Day "+cd+"/28":cd>28?"종료":"곧 시작";
 
     // week of batteries
-    var best=0;for(var w=1;w<7;w++)if(daily[w]>daily[best])best=w;
+    var best=bi;
     var top=Math.max.apply(null,daily.slice(0,7))||1;
     $("week").innerHTML=daily.slice(0,7).map(function(p,i){
       var k=kst(t0+i*D+H),h=Math.max(4,Math.round(p/top*46));
