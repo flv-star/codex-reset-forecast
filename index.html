@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="ChatGPT·Codex 사용량 100% 리셋이 언제 올지 예보해 주는 사이트. 데이터: Codex Resets">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>코덱스 리셋 예보</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dongle:wght@400;700&family=Gowun+Dodum&family=Fredoka:wght@500;600;700&display=swap">
+<style>
+/* Layout: "charging buddy" — a battery mascot whose mood tracks today's odds sits in a soft hero; below, a 7-day row of mini batteries, a dot-bubble calendar that glows into the forecast, and three trivia cards. Soft pastel, no hard borders. */
+:root{
+  --bg:#F5F3FB; --card:#FFFFFF; --ink:#262A4D; --muted:#8A88A6; --line:#ECE9F6;
+  --coral:#FF7B8A; --peach:#FFC48C; --mint:#3ED6A3; --mint-soft:#D8F6EA; --dot:#E7E3F3; --blush:#FFD1D8;
+  --glow:rgba(62,214,163,.35); --shadow:0 10px 30px rgba(70,60,140,.10),0 2px 6px rgba(70,60,140,.06);
+  --f-display:"Dongle","Gowun Dodum",system-ui,sans-serif;
+  --f-body:"Gowun Dodum",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-num:"Fredoka","Gowun Dodum",ui-rounded,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14162A; --card:#1D2040; --ink:#EEF0FF; --muted:#9D9CC0; --line:#2A2D55;
+  --coral:#FF8796; --peach:#FFC48C; --mint:#4BE0AE; --mint-soft:#1F3D3F; --dot:#2B2E55; --blush:#7A4060;
+  --glow:rgba(75,224,174,.35); --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14162A; --card:#1D2040; --ink:#EEF0FF; --muted:#9D9CC0; --line:#2A2D55;
+  --coral:#FF8796; --peach:#FFC48C; --mint:#4BE0AE; --mint-soft:#1F3D3F; --dot:#2B2E55; --blush:#7A4060;
+  --glow:rgba(75,224,174,.35); --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 64px}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:34px}
+h1,h2{font-family:var(--f-display);font-weight:700;margin:0;line-height:.9;text-wrap:balance}
+h2{font-size:42px}
+p{margin:0}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.card{background:var(--card);border-radius:28px;box-shadow:var(--shadow);padding:24px}
+
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:34px;height:34px}
+.brand h1{font-size:44px}
+.now{font-family:var(--f-num);font-size:13px;color:var(--muted);background:var(--card);border-radius:99px;padding:6px 14px;box-shadow:var(--shadow)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:8px 36px;align-items:center;position:relative;overflow:hidden;padding:30px 34px}
+.hero::before,.hero::after{content:"";position:absolute;border-radius:50%;filter:blur(40px);opacity:.55;z-index:0}
+.hero::before{width:280px;height:280px;background:var(--mint-soft);left:-60px;top:-60px}
+.hero::after{width:240px;height:240px;background:var(--blush);right:-40px;bottom:-90px;opacity:.45}
+.hero>*{position:relative;z-index:1}
+@media (max-width:720px){.hero{grid-template-columns:minmax(0,1fr);padding:24px 20px;text-align:center}.buddy{max-width:200px;margin:0 auto}}
+.buddy svg{width:100%;height:auto;display:block;overflow:visible}
+.talk{display:flex;flex-direction:column;gap:16px;min-width:0}
+.bubble{display:inline-block;align-self:flex-start;background:var(--ink);color:var(--card);border-radius:18px 18px 18px 4px;padding:6px 14px;font-size:14px}
+@media (max-width:720px){.bubble{align-self:center;border-radius:18px}}
+.answer{font-family:var(--f-display);font-weight:700;font-size:clamp(56px,9vw,84px);line-height:.8;color:var(--coral)}
+.talk .lbl{font-size:14px;color:var(--muted);margin-bottom:-8px}
+.odds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.odds div{background:var(--mint-soft);border-radius:18px;padding:10px 12px;display:flex;flex-direction:column}
+.odds b{font-family:var(--f-num);font-weight:600;font-size:26px;line-height:1.1}
+.odds span{font-size:12px;color:var(--muted)}
+.answer span{white-space:nowrap}
+.answer small{white-space:nowrap;font-family:var(--f-num);font-weight:600;font-size:.34em;color:var(--ink);margin-left:8px;vertical-align:.5em}
+.next{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;background:var(--bg);border-radius:20px;padding:14px 16px}
+@media (max-width:720px){.next{justify-content:center}}
+.next .lbl{font-size:13px;color:var(--muted)}
+.next .date{font-family:var(--f-display);font-weight:700;font-size:40px;line-height:.8}
+.clock{display:flex;gap:6px}
+.clock div{background:var(--card);border-radius:12px;padding:4px 8px;min-width:48px;text-align:center}
+.clock b{display:block;font-family:var(--f-num);font-weight:600;font-size:20px;line-height:1.2}
+.clock span{font-size:11px;color:var(--muted)}
+.range{font-size:14px;color:var(--muted)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:480px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat:last-child{grid-column:1/-1}}
+.stat{background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:14px 16px;display:flex;gap:12px;align-items:center;min-width:0}
+.stat .ic{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center}
+.stat .ic svg{width:20px;height:20px}
+.stat b{display:block;font-family:var(--f-num);font-weight:600;font-size:21px;line-height:1.15}
+.stat span{font-size:12px;color:var(--muted)}
+
+section{display:flex;flex-direction:column;gap:16px}
+.sh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
+.sh p{font-size:14px;color:var(--muted)}
+
+/* week of batteries */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;padding:22px 16px}
+@media (max-width:560px){.week{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:20px}}
+.bat{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;border-radius:20px;padding:10px 4px}
+.bat.best{background:var(--mint-soft)}
+.bat .dw{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:.8}
+.bat .dd{font-family:var(--f-num);font-size:12px;color:var(--muted)}
+.bat svg{width:42px;height:70px}
+.bat .p{font-family:var(--f-num);font-weight:600;font-size:18px}
+.bat .l{font-size:12px;color:var(--muted);text-align:center}
+.bat.best .l{color:var(--ink)}
+.crown{position:absolute;top:-14px;font-size:12px;background:var(--mint);color:var(--card);font-family:var(--f-num);font-weight:600;border-radius:99px;padding:1px 10px}
+.today-tag{color:var(--coral)}
+
+/* calendar */
+.cal-card{padding:22px 20px 16px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{width:14px;height:14px;border-radius:50%;display:inline-block}
+.cal-scroll{overflow-x:auto;padding:10px 4px 8px 0;margin-top:10px;scrollbar-width:thin}
+.cal{display:flex;gap:5px;width:max-content}
+.dn{display:flex;flex-direction:column;gap:5px;padding-top:22px;position:sticky;left:0;background:var(--card);z-index:2;padding-right:4px}
+.dn span{height:24px;line-height:24px;font-size:12px;color:var(--muted);width:20px}
+.col{display:flex;flex-direction:column;gap:5px}
+.col .m{height:17px;font-family:var(--f-num);font-size:12px;color:var(--muted);white-space:nowrap;width:24px;overflow:visible}
+.d{width:24px;height:24px;border-radius:50%;background:var(--dot);display:grid;place-items:center;cursor:default}
+.d.reg{background:var(--coral)}
+.d.bank{background:transparent;box-shadow:inset 0 0 0 4px var(--peach)}
+.d.fut{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
+.d.f1{background:var(--mint);opacity:.28;box-shadow:none}
+.d.f2{background:var(--mint);opacity:.55;box-shadow:none}
+.d.f3{background:var(--mint);opacity:1;box-shadow:0 0 0 4px var(--glow)}
+.d.today{box-shadow:0 0 0 2.5px var(--ink)}
+.d.today::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink)}
+.d:hover{transform:scale(1.18)}
+@media (prefers-reduced-motion:no-preference){.d{transition:transform .15s}.d.f3{animation:pulse 2.2s ease-in-out infinite}@keyframes pulse{50%{box-shadow:0 0 0 7px var(--glow)}}}
+.tip{font-size:14px;min-height:1.6em;margin-top:6px}
+
+/* trivia */
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.facts{grid-template-columns:minmax(0,1fr)}}
+.fact{display:flex;gap:16px;align-items:center}
+.fact svg{flex:none;width:64px;height:64px}
+.fact .big{font-family:var(--f-display);font-weight:700;font-size:40px;line-height:.85}
+.fact .big em{font-style:normal;color:var(--coral)}
+.fact p.s{font-size:13px;color:var(--muted)}
+.fact>div{min-width:0}
+
+details.card{padding:18px 24px}
+summary{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1;cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";font-family:var(--f-num);font-size:18px;width:26px;height:26px;border-radius:50%;background:var(--mint-soft);display:grid;place-items:center;line-height:1}
+details[open] summary::before{content:"−"}
+form.add{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:14px}
+form.add label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+input{font:inherit;font-size:15px;padding:8px 12px;border:0;border-radius:12px;background:var(--bg);color:var(--ink)}
+input[type=checkbox]{accent-color:var(--mint);width:18px;height:18px}
+.btn{font-family:var(--f-body);font-size:15px;padding:9px 20px;border-radius:99px;border:0;background:var(--ink);color:var(--card);cursor:pointer}
+.btn.small{font-size:12px;padding:3px 12px;background:var(--bg);color:var(--ink)}
+.mine{display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:14px}
+.mine div{display:flex;gap:10px;align-items:center}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--mint);outline-offset:2px}
+.foot{font-size:13px;color:var(--muted);max-width:70ch}
+.foot a,.lt-meta a{color:var(--ink);text-underline-offset:3px}
+.latest{display:flex;flex-direction:column;gap:10px;padding:20px 24px}
+.lt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lt-head .lbl{font-size:14px;color:var(--muted)}
+.src{font-family:var(--f-num);font-size:12px;font-weight:600;border-radius:99px;padding:2px 10px;background:var(--dot);color:var(--muted)}
+.src.on{background:var(--mint-soft);color:var(--ink)}
+.src.on::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--mint);margin-right:6px;vertical-align:1px}
+.quote{font-size:18px;line-height:1.5;overflow-wrap:anywhere}
+.lt-meta{font-size:13px;color:var(--muted)}
+
+/* mascot animation */
+@media (prefers-reduced-motion:no-preference){
+  #buddy{animation:bob 3.2s ease-in-out infinite;transform-origin:50% 100%}
+  @keyframes bob{50%{transform:translateY(-6px) rotate(-1.5deg)}}
+  .blink{animation:blink 4.5s infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  .spark{animation:tw 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  .spark:nth-of-type(2){animation-delay:.6s}.spark:nth-of-type(3){animation-delay:1.2s}
+  @keyframes tw{50%{transform:scale(.4);opacity:.3}}
+  .zz{animation:zz 3s ease-in-out infinite}
+  @keyframes zz{0%{opacity:0;transform:translate(0,6px)}40%{opacity:1}100%{opacity:0;transform:translate(10px,-14px)}}
+  #fillRect{transition:y 1s cubic-bezier(.3,1.3,.5,1),height 1s cubic-bezier(.3,1.3,.5,1)}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="7" y="5" width="20" height="27" rx="7" fill="var(--ink)"/><rect x="13" y="1.5" width="8" height="5" rx="2" fill="var(--ink)"/><rect x="10" y="15" width="14" height="14" rx="4" fill="var(--mint)"/></svg>
+      <h1>코덱스 리셋 예보</h1>
+    </div>
+    <span class="now" id="nowLabel">KST</span>
+  </header>
+
+  <div class="card hero">
+    <div class="buddy" aria-hidden="true">
+      <svg viewBox="0 0 240 280">
+        <defs><clipPath id="body"><rect x="40" y="46" width="160" height="214" rx="46"/></clipPath></defs>
+        <g id="buddy">
+          <ellipse cx="120" cy="272" rx="70" ry="8" fill="var(--line)"/>
+          <rect x="92" y="24" width="56" height="30" rx="12" fill="var(--ink)"/>
+          <rect x="40" y="46" width="160" height="214" rx="46" fill="var(--card)" stroke="var(--ink)" stroke-width="7"/>
+          <g clip-path="url(#body)"><rect id="fillRect" x="40" y="200" width="160" height="60" fill="var(--mint)"/></g>
+          <rect x="40" y="46" width="160" height="214" rx="46" fill="none" stroke="var(--ink)" stroke-width="7"/>
+          <g id="face"></g>
+        </g>
+        <g id="extras"></g>
+      </svg>
+    </div>
+    <div class="talk">
+      <span class="bubble" id="bubble">…</span>
+      <p class="lbl">가장 유력한 다음 리셋</p>
+      <p class="answer"><span id="nextDate">…</span></p>
+      <p class="range" id="nextRange"></p>
+      <div class="next">
+        <p class="lbl">예상 시점까지</p>
+        <div class="clock" aria-label="예상 시점까지 남은 시간">
+          <div><b id="cd-d">0</b><span>일</span></div>
+          <div><b id="cd-h">00</b><span>시간</span></div>
+          <div><b id="cd-m">00</b><span>분</span></div>
+          <div><b id="cd-s">00</b><span>초</span></div>
+        </div>
+      </div>
+      <div class="odds">
+        <div><b id="oToday">–</b><span>오늘 안에</span></div>
+        <div><b id="o72">–</b><span>72시간 안에</span></div>
+        <div><b id="o7">–</b><span>7일 안에</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="ic" style="background:var(--blush)"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M10 6v4l3 2" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg></span><div><b id="cLast">–</b><span>마지막 리셋</span></div></div>
+    <div class="stat"><span class="ic" style="background:var(--mint-soft)"><svg viewBox="0 0 20 20"><path d="M4 11a6 6 0 1 0 2-5" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M3 3v4h4" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b id="cTotal">–</b><span>지금까지 리셋</span></div></div>
+    <div class="stat"><span class="ic" style="background:var(--dot)"><svg viewBox="0 0 20 20"><path d="M3 10h14M3 10l3-3M3 10l3 3M17 10l-3-3M17 10l-3 3" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b id="cAvg">–</b><span>평균 간격</span></div></div>
+    <div class="stat"><span class="ic" style="background:var(--dot)"><svg viewBox="0 0 20 20"><path d="M6 3h8M6 17h8M7 3c0 4 6 4 6 7s-6 3-6 7M13 3c0 4-6 4-6 7" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg></span><div><b id="cLong">–</b><span>최장 대기</span></div></div>
+    <div class="stat"><span class="ic" style="background:var(--peach)"><svg viewBox="0 0 20 20"><path d="M10 2l2.4 5 5.4.6-4 3.7 1.1 5.4L10 14l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/></svg></span><div><b id="cChal">–</b><span>Tibo 28일 챌린지</span></div></div>
+  </div>
+
+  <div class="card latest">
+    <div class="lt-head"><span class="src" id="srcPill">저장된 기록</span><p class="lbl">가장 최근 리셋 공지</p></div>
+    <p class="quote" id="ltText"></p>
+    <p class="lt-meta"><span id="ltWhen"></span> · <a id="ltLink" href="https://x.com/thsottiaux" target="_blank" rel="noopener">X에서 원문 보기</a></p>
+  </div>
+
+  <section>
+    <div class="sh"><h2>이번 주 충전 예보</h2><p>배터리가 찰수록 그날 리셋될 가능성이 높아요</p></div>
+    <div class="card week" id="week"></div>
+  </section>
+
+  <section>
+    <div class="sh"><h2>리셋 달력</h2><p id="calSub"></p></div>
+    <div class="card cal-card">
+      <div class="legend">
+        <span><i class="lg" style="background:var(--coral)"></i>리셋</span>
+        <span><i class="lg" style="box-shadow:inset 0 0 0 3px var(--peach)"></i>적립형</span>
+        <span><i class="lg" style="background:var(--dot)"></i>없음</span>
+        <span><i class="lg" style="background:var(--mint);box-shadow:0 0 0 3px var(--glow)"></i>예보 (진할수록 유력)</span>
+      </div>
+      <div class="cal-scroll" id="calScroll"><div class="cal" id="cal"></div></div>
+      <p class="tip" id="tip"><span class="muted">동그라미를 눌러 보세요</span></p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sh"><h2>알고 보면 재밌는 기록</h2></div>
+    <div class="facts">
+      <div class="card fact">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="12" width="48" height="44" rx="12" fill="var(--blush)"/><rect x="8" y="12" width="48" height="14" rx="7" fill="var(--coral)"/><circle cx="22" cy="40" r="4" fill="var(--ink)"/><circle cx="42" cy="40" r="4" fill="var(--ink)"/><path d="M27 47q5 4 10 0" stroke="var(--ink)" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+        <div><p class="s">리셋이 제일 잦은 요일</p><p class="big" id="fWd">–</p><p class="s" id="fWdSub"></p></div>
+      </div>
+      <div class="card fact">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="14" cy="32" r="8" fill="var(--coral)"/><circle cx="32" cy="32" r="8" fill="var(--coral)"/><circle cx="50" cy="32" r="8" fill="var(--coral)"/><path d="M8 50q24 10 48 0" stroke="var(--mint)" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+        <div><p class="s">최장 연속 리셋</p><p class="big" id="fStreak">–</p><p class="s" id="fStreakSub"></p></div>
+      </div>
+      <div class="card fact">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6l7 15 16 2-12 11 3 16-14-8-14 8 3-16L9 23l16-2z" fill="var(--peach)"/><circle cx="26" cy="30" r="2.6" fill="var(--ink)"/><circle cx="38" cy="30" r="2.6" fill="var(--ink)"/><path d="M28 36q4 3 8 0" stroke="var(--ink)" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>
+        <div><p class="s">리셋이 제일 많았던 달</p><p class="big" id="fMonth">–</p><p class="s" id="fMonthSub"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">리셋 기록은 <a href="https://codex-resets.com" target="_blank" rel="noopener">Codex Resets</a>의 공개 API에서 사이트를 열 때마다 새로 받아와요. 원본은 OpenAI Codex 팀 Tibo(<a href="https://x.com/thsottiaux" target="_blank" rel="noopener">@thsottiaux</a>)의 X 게시물이에요. 날짜와 시각은 한국 시간 기준이고, 예보는 최근 리셋에 더 큰 비중을 두고 리셋 간격 패턴을 통계적으로 맞춘 결과예요. OpenAI 공식 일정이 아니니 재미로 봐 주세요.</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var H=36e5, D=864e5, K=9*H, R="g", B="b";
+  // Fallback copy of the codex-resets.com API (KST). The live list replaces it on load.
+  var RAW=[
+    "2025-09-17T13:02 g,2025-11-06T05:19 g,2025-11-23T08:13 g,2025-12-03T07:49 g,2025-12-17T11:18 g,2025-12-20T07:01 g",
+    "2025-12-25T17:01 g,2026-03-03T10:50 g,2026-03-05T06:30 g,2026-03-08T11:42 g,2026-03-10T12:51 g,2026-03-11T14:38 g",
+    "2026-03-27T10:52 g,2026-04-01T16:48 g,2026-04-08T08:13 g,2026-04-10T02:51 g,2026-04-17T09:58 g,2026-04-21T08:15 g",
+    "2026-04-28T14:28 g,2026-05-17T02:51 g,2026-05-24T05:14 g,2026-06-01T00:25 g,2026-06-04T09:25 g,2026-06-18T09:10 g",
+    "2026-06-27T08:39 g,2026-06-29T08:54 g,2026-06-30T08:39 g,2026-07-10T06:24 g,2026-07-11T02:59 g,2026-07-11T14:54 g",
+    "2026-07-13T06:28 g,2026-07-14T03:29 g,2026-07-15T04:34 g,2026-07-16T13:14 g,2026-07-18T12:28 g,2026-07-22T01:47 g",
+    "2026-07-26T04:17 g,2026-07-28T12:09 g,2026-07-29T13:09 g,2026-08-01T12:32 g,2026-08-09T05:29 g,2026-08-11T09:27 g",
+    "2026-08-13T10:01 g,2026-08-21T20:43 b,2026-08-24T09:46 g,2026-08-25T23:30 g,2026-08-28T01:35 g,2026-08-30T05:43 g",
+    "2026-08-31T11:29 g,2026-09-04T08:12 b,2026-09-05T09:39 b,2026-09-08T10:56 g,2026-09-12T17:09 g,2026-09-23T03:23 b",
+    "2026-09-27T03:17 g,2026-09-30T04:00 b,2026-10-03T06:18 g,2026-10-07T12:35 g,2026-10-08T12:44 b,2026-10-11T13:01 g",
+    "2026-10-13T14:06 g"
+  ].join(",");
+  var CHALLENGE_START=Date.parse("2026-10-05T12:00:00+09:00");
+
+  var LIVE=null,LATEST={text:"What would you like with your side of reset? It's done.",url:"https://x.com/thsottiaux/status/2109873287853707513",ms:Date.parse("2026-10-13T05:06:06Z")};
+  function parse(s){var p=s.split(" "),t=p[0],timed=t.length>10;
+    return {ms:Date.parse(timed?t+":00+09:00":t+"T12:00:00+09:00"),timed:timed,kind:p[1]};}
+  function events(){
+    return (LIVE||RAW).split(",").map(parse)
+      .filter(function(e){return isFinite(e.ms);}).sort(function(a,b){return a.ms-b.ms;});
+  }
+
+  function erf(x){var s=x<0?-1:1;x=Math.abs(x);var t=1/(1+0.3275911*x);
+    return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x));}
+  function Phi(z){return 0.5*(1+erf(z/Math.SQRT2));}
+  function PhiInv(p){
+    var a=[-39.69683028665376,220.9460984245205,-275.9285104469687,138.357751867269,-30.66479806614716,2.506628277459239],
+        b=[-54.47609879822406,161.5858368580409,-155.6989798598866,66.80131188771972,-13.28068155288572],
+        c=[-0.007784894002430293,-0.3223964580411365,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783],
+        d=[0.007784695709041462,0.3224671290700398,2.445134137142996,3.754408661907416],q,r,pl=0.02425;
+    if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+    if(p>1-pl){q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+    q=p-0.5;r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+  }
+  // Recency-weighted log-normal fit of gaps between regular resets (half-life 30 days).
+  function fit(evs,now){
+    var g=evs.filter(function(e){return e.kind===R;}),sw=0,sm=0,sv=0,gaps=[];
+    for(var i=1;i<g.length;i++){var d=Math.max((g[i].ms-g[i-1].ms)/D,0.25),w=Math.pow(0.5,(now-g[i].ms)/(30*D));gaps.push({d:d,w:w});sw+=w;sm+=w*Math.log(d);}
+    var mu=sm/sw;gaps.forEach(function(x){sv+=x.w*Math.pow(Math.log(x.d)-mu,2);});
+    return {mu:mu,sigma:Math.max(Math.sqrt(sv/sw),0.3),last:g[g.length-1],reg:g};
+  }
+  function F(m,t){return t<=0?0:Phi((Math.log(t)-m.mu)/m.sigma);}
+  function condP(m,e,a,b){var s=1-F(m,e);if(s<1e-9)return 1;return Math.max(0,(F(m,b)-F(m,Math.max(a,e)))/s);}
+  function condQ(m,e,p){var fe=F(m,e),t=Math.min(Math.max(fe+p*(1-fe),1e-6),1-1e-6);return Math.exp(m.mu+m.sigma*PhiInv(t));}
+
+  var WD=["일","월","화","수","목","금","토"];
+  function kst(ms){var d=new Date(ms+K);return {y:d.getUTCFullYear(),mo:d.getUTCMonth()+1,da:d.getUTCDate(),wd:d.getUTCDay(),h:d.getUTCHours(),mi:d.getUTCMinutes()};}
+  function day0(ms){return Math.floor((ms+K)/D)*D-K;}
+  function pad(n){return (n<10?"0":"")+n;}
+  function md(ms){var k=kst(ms);return k.mo+"월 "+k.da+"일";}
+  function part(ms){var h=kst(ms).h;return h<6?"새벽":h<12?"오전":h<18?"오후":"밤";}
+  function pct(p){var v=p*100;return v>0&&v<1?"<1%":Math.round(v)+"%";}
+  function $(id){return document.getElementById(id);}
+
+  // Mascot faces by mood: 3 excited, 2 happy, 1 curious, 0 sleepy
+  var FACES=[
+    '<path d="M80 128q12 8 24 0M136 128q12 8 24 0" stroke="var(--ink)" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="74" cy="150" rx="12" ry="7" fill="var(--blush)"/><ellipse cx="166" cy="150" rx="12" ry="7" fill="var(--blush)"/><path d="M110 160q10 6 20 0" stroke="var(--ink)" stroke-width="6" fill="none" stroke-linecap="round"/>',
+    '<ellipse class="blink" cx="92" cy="126" rx="9" ry="12" fill="var(--ink)"/><ellipse class="blink" cx="148" cy="126" rx="9" ry="12" fill="var(--ink)"/><circle cx="95" cy="121" r="3" fill="var(--card)"/><circle cx="151" cy="121" r="3" fill="var(--card)"/><ellipse cx="72" cy="152" rx="12" ry="7" fill="var(--blush)"/><ellipse cx="168" cy="152" rx="12" ry="7" fill="var(--blush)"/><ellipse cx="120" cy="160" rx="8" ry="9" fill="var(--ink)"/>',
+    '<ellipse class="blink" cx="92" cy="126" rx="10" ry="13" fill="var(--ink)"/><ellipse class="blink" cx="148" cy="126" rx="10" ry="13" fill="var(--ink)"/><circle cx="96" cy="120" r="3.5" fill="var(--card)"/><circle cx="152" cy="120" r="3.5" fill="var(--card)"/><ellipse cx="72" cy="152" rx="13" ry="7" fill="var(--blush)"/><ellipse cx="168" cy="152" rx="13" ry="7" fill="var(--blush)"/><path d="M104 152q16 16 32 0" stroke="var(--ink)" stroke-width="7" fill="none" stroke-linecap="round"/>',
+    '<path d="M80 130q12-16 24 0M136 130q12-16 24 0" stroke="var(--ink)" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="72" cy="150" rx="14" ry="8" fill="var(--blush)"/><ellipse cx="168" cy="150" rx="14" ry="8" fill="var(--blush)"/><path d="M100 146q20 0 40 0q0 26-20 26t-20-26z" fill="var(--ink)"/><path d="M110 160q10-6 20 0q-2 10-10 10t-10-10z" fill="var(--coral)"/>'
+  ];
+  var EXTRAS=[
+    '<g class="zz" fill="var(--muted)" font-family="Fredoka, sans-serif" font-weight="600"><text x="196" y="60" font-size="26">z</text><text x="214" y="38" font-size="18">z</text></g>',
+    '<path class="spark" d="M212 70l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="var(--peach)"/>',
+    '<path class="spark" d="M212 66l5 12 12 5-12 5-5 12-5-12-12-5 12-5z" fill="var(--peach)"/><path class="spark" d="M24 100l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="var(--mint)"/>',
+    '<path class="spark" d="M212 60l6 14 14 6-14 6-6 14-6-14-14-6 14-6z" fill="var(--peach)"/><path class="spark" d="M22 92l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="var(--mint)"/><path class="spark" d="M206 190l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="var(--coral)"/>'
+  ];
+  function mood(p){return p>=0.3?3:p>=0.15?2:p>=0.06?1:0;}
+  var ANSWERS=[["","오늘은 쿨쿨 쉬는 날이에요"],["","오늘도 혹시 모르니 가끔 확인해 봐요"],["","오늘 꽤 두근거려요!"],["","오늘 리셋 각! 아끼지 말고 쓰세요"]];
+  function label(p){return p>=0.2?"기대 MAX":p>=0.12?"두근두근":p>=0.06?"혹시?":p>=0.02?"희박":"쿨쿨";}
+  function level(p){return p>=0.18?3:p>=0.1?2:p>=0.04?1:0;}
+
+  var target=0;
+  function render(){
+    var now=Date.now(),evs=events(),m=fit(evs,now),e=(now-m.last.ms)/D,t0=day0(now);
+    var daily=[];for(var i=0;i<35;i++)daily.push(condP(m,e,(t0+i*D-m.last.ms)/D,(t0+(i+1)*D-m.last.ms)/D));
+
+    var kn=kst(now);$("nowLabel").textContent=kn.mo+"/"+kn.da+" ("+WD[kn.wd]+") "+pad(kn.h)+":"+pad(kn.mi)+" KST";
+    var md0=mood(daily[0]);
+    $("face").innerHTML=FACES[md0];$("extras").innerHTML=EXTRAS[md0];
+    $("bubble").textContent=ANSWERS[md0][1];
+    $("oToday").textContent=pct(daily[0]);$("o72").textContent=pct(condP(m,e,e,e+3));$("o7").textContent=pct(condP(m,e,e,e+7));
+    var fh=Math.round(30+Math.min(daily[0]/0.35,1)*170);
+    requestAnimationFrame(function(){var r=$("fillRect");r.setAttribute("y",String(260-fh));r.setAttribute("height",String(fh));});
+
+    var q50=condQ(m,e,0.5),q10=condQ(m,e,0.1),q90=condQ(m,e,0.9);
+    target=m.last.ms+q50*D;
+    $("nextDate").textContent=md(target)+" ("+WD[kst(target).wd]+") "+part(target);
+    $("nextRange").textContent="10번 중 8번은 "+md(m.last.ms+q10*D)+" ~ "+md(m.last.ms+q90*D)+" 사이에 와요";
+
+    $("cLast").textContent=e<1?Math.round(e*24)+"시간 전":e.toFixed(1)+"일 전";
+    $("cTotal").textContent=evs.length+"회";
+    var gs=[];for(var j=1;j<m.reg.length;j++)gs.push((m.reg[j].ms-m.reg[j-1].ms)/D);
+    $("cAvg").textContent=((evs[evs.length-1].ms-evs[0].ms)/D/(evs.length-1)).toFixed(1)+"일";
+    $("cLong").textContent=Math.max.apply(null,gs).toFixed(1)+"일";
+    var cd=Math.floor((now-CHALLENGE_START)/D)+1;
+    $("cChal").textContent=cd>=1&&cd<=28?"Day "+cd+"/28":cd>28?"종료":"곧 시작";
+
+    // week of batteries
+    var best=0;for(var w=1;w<7;w++)if(daily[w]>daily[best])best=w;
+    var top=Math.max.apply(null,daily.slice(0,7))||1;
+    $("week").innerHTML=daily.slice(0,7).map(function(p,i){
+      var k=kst(t0+i*D+H),h=Math.max(4,Math.round(p/top*46));
+      return '<div class="bat'+(i===best?" best":"")+'">'+(i===best?'<span class="crown">유력</span>':'')+
+        '<span class="dw'+(i===0?" today-tag":"")+'">'+(i===0?"오늘":WD[k.wd])+'</span><span class="dd">'+k.mo+'/'+k.da+'</span>'+
+        '<svg viewBox="0 0 42 70" aria-hidden="true"><rect x="14" y="1" width="14" height="7" rx="3" fill="var(--ink)"/>'+
+        '<rect x="3" y="6" width="36" height="61" rx="11" fill="var(--card)" stroke="var(--ink)" stroke-width="3.5"/>'+
+        '<rect x="8.5" y="'+(61.5-h)+'" width="25" height="'+h+'" rx="6" fill="'+(i===best?"var(--mint)":p>=0.06?"var(--mint)":"var(--dot)")+'" opacity="'+(i===best?1:0.75)+'"/></svg>'+
+        '<span class="p">'+pct(p)+'</span><span class="l">'+label(p)+'</span></div>';}).join("");
+
+    // dot calendar
+    var map={};evs.forEach(function(x){var key=day0(x.ms);if(!map[key]||x.kind===R)map[key]=x.kind;});
+    var start=day0(evs[0].ms);start-=kst(start+H).wd*D;
+    var end=t0+28*D;end+=(6-kst(end+H).wd)*D;
+    var html='<div class="dn"><span></span><span>월</span><span></span><span>수</span><span></span><span>금</span><span></span></div>',lastMo=-1;
+    for(var c=start;c<=end;c+=7*D){
+      var lab="";
+      for(var x=0;x<7;x++){var kx=kst(c+x*D+H);if((kx.da===1||c===start)&&kx.mo!==lastMo){lab=(kx.mo===1||lastMo===-1)?"'"+(kx.y%100)+" "+kx.mo+"월":kx.mo+"월";lastMo=kx.mo;}}
+      html+='<div class="col"><span class="m">'+lab+'</span>';
+      for(var d=0;d<7;d++){
+        var ds=c+d*D,kd=kst(ds+H),cls="d",tip=kd.mo+"월 "+kd.da+"일 ("+WD[kd.wd]+") · ";
+        if(ds>t0){var p=daily[Math.round((ds-t0)/D)]||0,lv=level(p);cls+=lv?" f"+lv:" fut";tip+="예보 리셋 확률 "+pct(p);}
+        else if(map[ds]===R){cls+=" reg";tip+="리셋됐어요!";}
+        else if(map[ds]===B){cls+=" bank";tip+="적립형 리셋 지급";}
+        else if(ds===t0){tip+="오늘 · 리셋 확률 "+pct(daily[0]);}
+        else tip+="리셋 없음";
+        if(ds===t0)cls+=" today";
+        html+='<span class="'+cls+'" data-tip="'+tip+'"></span>';
+      }
+      html+='</div>';
+    }
+    $("cal").innerHTML=html;
+    var sc=$("calScroll");sc.scrollLeft=sc.scrollWidth;
+    var k0=kst(evs[0].ms);$("calSub").textContent=k0.y+"년 "+k0.mo+"월부터 · 오른쪽 민트색은 앞으로 4주 예보";
+
+    // trivia
+    var wdc=[0,0,0,0,0,0,0];m.reg.forEach(function(x){wdc[kst(x.ms).wd]++;});
+    var bw=wdc.indexOf(Math.max.apply(null,wdc));
+    $("fWd").innerHTML="<em>"+WD[bw]+"요일</em>";
+    $("fWdSub").textContent=wdc[bw]+"번 · 일 "+wdc[0]+" 월 "+wdc[1]+" 화 "+wdc[2]+" 수 "+wdc[3]+" 목 "+wdc[4]+" 금 "+wdc[5]+" 토 "+wdc[6];
+    var days=Object.keys(map).filter(function(k){return map[k]===R;}).map(Number).sort(function(a,b){return a-b;});
+    var bs=1,bsEnd=days[0],run=1;
+    for(var s2=1;s2<days.length;s2++){run=(days[s2]-days[s2-1]===D)?run+1:1;if(run>bs){bs=run;bsEnd=days[s2];}}
+    $("fStreak").innerHTML="<em>"+bs+"일</em> 연속";
+    $("fStreakSub").textContent=md(bsEnd-(bs-1)*D)+" ~ "+md(bsEnd)+", 매일매일 리셋";
+    var mc={};m.reg.forEach(function(x){var k=kst(x.ms),key=k.y+"년 "+k.mo+"월";mc[key]=(mc[key]||0)+1;});
+    var bm=Object.keys(mc).sort(function(a,b){return mc[b]-mc[a];})[0];
+    $("fMonth").innerHTML="<em>"+bm.replace(/^\d+년 /,"")+"</em> "+mc[bm]+"번";
+    $("fMonthSub").textContent=bm+" · 평균 "+(31/mc[bm]).toFixed(1)+"일에 한 번꼴";
+
+    $("ltText").textContent="\u201C"+LATEST.text+"\u201D";
+    var kl=kst(LATEST.ms);$("ltWhen").textContent=kl.mo+"월 "+kl.da+"일 ("+WD[kl.wd]+") "+pad(kl.h)+":"+pad(kl.mi)+" · Tibo";
+    if(LATEST.url)$("ltLink").href=LATEST.url;
+    var sp=$("srcPill");sp.textContent=LIVE?"실시간":"저장된 기록";sp.className="src"+(LIVE?" on":"");
+    tick();
+  }
+  function tick(){
+    var s=Math.floor(Math.max(0,target-Date.now())/1000);
+    $("cd-d").textContent=Math.floor(s/86400);$("cd-h").textContent=pad(Math.floor(s%86400/3600));
+    $("cd-m").textContent=pad(Math.floor(s%3600/60));$("cd-s").textContent=pad(s%60);
+  }
+
+  function showTip(ev){var t=ev.target.closest(".d");if(t)$("tip").textContent=t.getAttribute("data-tip");}
+  $("cal").addEventListener("mouseover",showTip);
+  $("cal").addEventListener("click",showTip);
+  // Live data: codex-resets.com public API (CORS-open, no key; credit required).
+  function toRaw(r){var k=kst(Date.parse(r.announced_at));return k.y+"-"+pad(k.mo)+"-"+pad(k.da)+"T"+pad(k.h)+":"+pad(k.mi)+" "+(r.reset_type==="banked"?B:R);}
+  function loadLive(){
+    if(!window.fetch)return;
+    var all=[];
+    function page(cur){
+      return fetch("https://codex-resets.com/api/v1/resets?limit=100&order=asc"+(cur?"&cursor="+encodeURIComponent(cur):""))
+        .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+        .then(function(d){all=all.concat(d.data||[]);var p=d.pagination||{};if(p.has_more&&p.next_cursor&&all.length<2000)return page(p.next_cursor);});
+    }
+    page(null).then(function(){
+      var ok=all.filter(function(r){return r&&isFinite(Date.parse(r.announced_at));});
+      if(!ok.length)return;
+      LIVE=ok.map(toRaw).join(",");
+      var l=ok[ok.length-1];
+      LATEST={text:String(l.text||"").replace(/\s*https:\/\/t\.co\/\S+/g,"").trim(),url:l.source&&l.source.url,ms:Date.parse(l.announced_at)};
+      render();
+    }).catch(function(){});
+  }
+
+  render();
+  loadLive();
+  setInterval(tick,1000);
+  setInterval(function(){loadLive();render();},5*60*1000);
+})();
+</script>
+
+</body>
+</html>
