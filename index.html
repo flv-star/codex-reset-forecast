@@ -151,7 +151,9 @@ input[type=checkbox]{accent-color:var(--mint);width:18px;height:18px}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--mint);outline-offset:2px}
 .foot{font-size:13px;color:var(--muted);max-width:70ch}
 .foot a,.lt-meta a{color:var(--ink);text-underline-offset:3px}
-.latest{display:flex;flex-direction:column;gap:10px;padding:20px 24px}
+.hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.credit{font-size:11px;color:var(--muted);margin-top:-26px}
+.credit a{color:var(--muted)}
 .lt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .lt-head .lbl{font-size:14px;color:var(--muted)}
 .src{font-family:var(--f-num);font-size:12px;font-weight:600;border-radius:99px;padding:2px 10px;background:var(--dot);color:var(--muted)}
@@ -183,7 +185,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
       <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="7" y="5" width="20" height="27" rx="7" fill="var(--ink)"/><rect x="13" y="1.5" width="8" height="5" rx="2" fill="var(--ink)"/><rect x="10" y="15" width="14" height="14" rx="4" fill="var(--mint)"/></svg>
       <h1>코덱스 리셋 예보</h1>
     </div>
-    <span class="now" id="nowLabel">KST</span>
+    <div class="hdr-r"><span class="src" id="srcPill">저장된 기록</span><span class="now" id="nowLabel">KST</span></div>
   </header>
 
   <div class="card hero">
@@ -231,12 +233,6 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     <div class="stat"><span class="ic" style="background:var(--peach)"><svg viewBox="0 0 20 20"><path d="M10 2l2.4 5 5.4.6-4 3.7 1.1 5.4L10 14l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/></svg></span><div><b id="cChal">–</b><span>Tibo 28일 챌린지</span></div></div>
   </div>
 
-  <div class="card latest">
-    <div class="lt-head"><span class="src" id="srcPill">저장된 기록</span><p class="lbl">가장 최근 리셋 공지</p></div>
-    <p class="quote" id="ltText"></p>
-    <p class="lt-meta"><span id="ltWhen"></span> · <a id="ltLink" href="https://x.com/thsottiaux" target="_blank" rel="noopener">X에서 원문 보기</a></p>
-  </div>
-
   <section>
     <div class="sh"><h2>이번 주 충전 예보</h2><p>배터리가 찰수록 그날 리셋될 가능성이 높아요</p></div>
     <div class="card week" id="week"></div>
@@ -274,7 +270,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     </div>
   </section>
 
-  <p class="foot">리셋 기록은 <a href="https://codex-resets.com" target="_blank" rel="noopener">Codex Resets</a>의 공개 API에서 사이트를 열 때마다 새로 받아와요. 원본은 OpenAI Codex 팀 Tibo(<a href="https://x.com/thsottiaux" target="_blank" rel="noopener">@thsottiaux</a>)의 X 게시물이에요. 날짜와 시각은 한국 시간 기준이고, 예보는 최근 리셋에 더 큰 비중을 두고 리셋 간격 패턴을 통계적으로 맞춘 결과예요. OpenAI 공식 일정이 아니니 재미로 봐 주세요.</p>
+  <p class="foot">날짜와 시각은 한국 시간 기준이고, 예보는 최근 리셋에 더 큰 비중을 두고 리셋 간격 패턴을 통계적으로 맞춘 결과예요. OpenAI 공식 일정이 아니니 재미로 봐 주세요.</p>
+  <p class="credit">Data: <a href="https://codex-resets.com" target="_blank" rel="noopener">Codex Resets</a></p>
 </div>
 
 <script>
@@ -433,9 +430,6 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     $("fMonth").innerHTML="<em>"+bm.replace(/^\d+년 /,"")+"</em> "+mc[bm]+"번";
     $("fMonthSub").textContent=bm+" · 평균 "+(31/mc[bm]).toFixed(1)+"일에 한 번꼴";
 
-    $("ltText").textContent="\u201C"+LATEST.text+"\u201D";
-    var kl=kst(LATEST.ms);$("ltWhen").textContent=kl.mo+"월 "+kl.da+"일 ("+WD[kl.wd]+") "+pad(kl.h)+":"+pad(kl.mi)+" · Tibo";
-    if(LATEST.url)$("ltLink").href=LATEST.url;
     var sp=$("srcPill");sp.textContent=LIVE?"실시간":"저장된 기록";sp.className="src"+(LIVE?" on":"");
     tick();
   }
