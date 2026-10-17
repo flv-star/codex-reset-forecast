@@ -151,6 +151,9 @@ input[type=checkbox]{accent-color:var(--mint);width:18px;height:18px}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--mint);outline-offset:2px}
 .foot{font-size:13px;color:var(--muted);max-width:70ch}
 .foot a,.lt-meta a{color:var(--ink);text-underline-offset:3px}
+.signal{align-self:flex-start;background:var(--coral);color:var(--card);font-family:var(--f-num);font-weight:600;font-size:14px;border-radius:99px;padding:5px 14px}
+@media (max-width:720px){.signal{align-self:center}}
+@media (prefers-reduced-motion:no-preference){.signal{animation:sig 1.6s ease-in-out infinite}@keyframes sig{50%{box-shadow:0 0 0 6px var(--blush)}}}
 .hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .credit{font-size:11px;color:var(--muted);margin-top:-26px}
 .credit a{color:var(--muted)}
@@ -204,6 +207,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
       </svg>
     </div>
     <div class="talk">
+      <span class="signal" id="signal" hidden></span>
       <span class="bubble" id="bubble">…</span>
       <p class="lbl">리셋이 가장 유력한 날</p>
       <p class="answer"><span id="nextDate">…</span></p>
@@ -219,8 +223,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
       </div>
       <div class="odds">
         <div><b id="oToday">–</b><span>오늘 안에</span></div>
-        <div><b id="o72">–</b><span>72시간 안에</span></div>
-        <div><b id="o7">–</b><span>7일 안에</span></div>
+        <div><b id="o72">–</b><span>3일 안에 (오늘 포함)</span></div>
+        <div><b id="o7">–</b><span>7일 안에 (오늘 포함)</span></div>
       </div>
     </div>
   </div>
@@ -294,7 +298,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
   ].join(",");
   var CHALLENGE_START=Date.parse("2026-10-05T12:00:00+09:00");
 
-  var LIVE=null,LATEST={text:"What would you like with your side of reset? It's done.",url:"https://x.com/thsottiaux/status/2109873287853707513",ms:Date.parse("2026-10-13T05:06:06Z")};
+  var SIG={watch:null,sched:null},LIVE=null,LATEST={text:"What would you like with your side of reset? It's done.",url:"https://x.com/thsottiaux/status/2109873287853707513",ms:Date.parse("2026-10-13T05:06:06Z")};
   function parse(s){var p=s.split(" "),t=p[0],timed=t.length>10;
     return {ms:Date.parse(timed?t+":00+09:00":t+"T12:00:00+09:00"),timed:timed,kind:p[1]};}
   function events(){
@@ -353,16 +357,41 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
   function level(p){return p>=0.18?3:p>=0.1?2:p>=0.04?1:0;}
 
   var target=0;
+  // Day-by-day odds (KST). Each day's hazard comes from the gap model; today is further
+  // conditioned on the hours already passed (resets cluster in KST 00-15h), then
+  // Codex Resets' live signals (a teased or scheduled reset) override where present.
+  function remainFrac(evs,now){
+    var hs=[];evs.forEach(function(x){if(x.kind===R&&x.timed){var k=kst(x.ms);hs.push(k.h+k.mi/60);}});
+    var k=kst(now),cur=k.h+k.mi/60,n=0;hs.forEach(function(v){if(v>=cur)n++;});
+    return (n+6*(24-cur)/24)/(hs.length+6);
+  }
+  function dailyOdds(m,evs,now,t0){
+    var hz=[];
+    for(var i=0;i<35;i++){var a=Math.max((t0+i*D-m.last.ms)/D,0);hz.push(condP(m,a,a,(t0+(i+1)*D-m.last.ms)/D));}
+    var r=remainFrac(evs,now);hz[0]=hz[0]*r/(1-hz[0]*(1-r));
+    if(SIG.sched){var sd=SIG.sched.scheduled_for?Date.parse(SIG.sched.scheduled_for):now;var si=Math.max(0,Math.round((day0(sd)-t0)/D));if(si<35)hz[si]=Math.max(hz[si],0.9);}
+    if(SIG.watch){var c=SIG.watch.reset_chance_percent;c=(c==null?(SIG.watch.level==="strong"?70:45):c)/100;hz[0]=Math.max(hz[0],c);}
+    var out=[],sv=1;for(var j=0;j<35;j++){out.push(sv*hz[j]);sv*=1-hz[j];}
+    return out;
+  }
+  function signalText(){
+    if(SIG.sched){var t=SIG.sched.scheduled_for?Date.parse(SIG.sched.scheduled_for):0,k=kst(t);
+      return "Tibo가 리셋을 예고했어요"+(t?" · "+k.mo+"/"+k.da+" "+pad(k.h)+":"+pad(k.mi)+" 예정":"");}
+    if(SIG.watch){var c=SIG.watch.reset_chance_percent,x=kst(Date.parse(SIG.watch.expires_at));
+      return (SIG.watch.level==="strong"?"리셋 징후 강함":"리셋 징후 감지")+(c!=null?" · "+c+"%":"")+" · "+pad(x.h)+":"+pad(x.mi)+"까지";}
+    return "";
+  }
   function render(){
     var now=Date.now(),evs=events(),m=fit(evs,now),e=(now-m.last.ms)/D,t0=day0(now);
-    var daily=[];for(var i=0;i<35;i++)daily.push(condP(m,e,(t0+i*D-m.last.ms)/D,(t0+(i+1)*D-m.last.ms)/D));
+    var daily=dailyOdds(m,evs,now,t0);
 
     var kn=kst(now);$("nowLabel").textContent=kn.mo+"/"+kn.da+" ("+WD[kn.wd]+") "+pad(kn.h)+":"+pad(kn.mi)+" KST";
     var resetToday=day0(m.last.ms)===t0;
     var md0=resetToday?3:mood(daily[0]);
     $("face").innerHTML=FACES[md0];$("extras").innerHTML=EXTRAS[md0];
-    $("bubble").textContent=resetToday?"오늘 리셋 왔어요! 마음껏 쓰세요":ANSWERS[md0][1];
-    $("oToday").textContent=resetToday?"완료!":pct(daily[0]);$("o72").textContent=pct(condP(m,e,e,e+3));$("o7").textContent=pct(condP(m,e,e,e+7));
+    $("bubble").textContent=resetToday?"오늘 리셋 왔어요! 마음껏 쓰세요":SIG.sched?"Tibo가 리셋을 예고했어요! 곧 와요":SIG.watch?"리셋 냄새가 나요! 자주 확인해 봐요":ANSWERS[md0][1];
+    var st=signalText(),sg=$("signal");sg.textContent=st;sg.hidden=!st||resetToday;
+    $("oToday").textContent=resetToday?"완료!":pct(daily[0]);var sumTo=function(k){var t=0;for(var q=0;q<k;q++)t+=daily[q];return t;};$("o72").textContent=pct(sumTo(3));$("o7").textContent=pct(sumTo(7));
     var fh=resetToday?200:Math.round(30+Math.min(daily[0]/0.35,1)*170);
     requestAnimationFrame(function(){var r=$("fillRect");r.setAttribute("y",String(260-fh));r.setAttribute("height",String(fh));});
 
@@ -372,7 +401,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     var bd=t0+bi*D;target=Math.max(bd,now);
     $("nextDate").textContent=(bi===0?"오늘, ":"")+md(bd+H)+" ("+WD[kst(bd+H).wd]+")";
     $("cdLbl").textContent=bi===0?"바로 오늘이에요!":"그날까지";
-    $("nextRange").textContent="이날 리셋될 확률 "+pct(daily[bi])+"로 가장 높아요 · 10번 중 8번은 "+md(m.last.ms+q10*D)+" ~ "+md(m.last.ms+q90*D)+" 사이에 와요";
+    $("nextRange").textContent="이날 리셋될 확률 "+pct(daily[bi])+"로 가장 높아요 · "+(SIG.sched||SIG.watch?"Tibo의 리셋 신호를 반영했어요":"10번 중 8번은 "+md(m.last.ms+q10*D)+" ~ "+md(m.last.ms+q90*D)+" 사이에 와요");
 
     $("cLast").textContent=e<1/24?"방금 전":e<1?Math.round(e*24)+"시간 전":e.toFixed(1)+"일 전";
     $("cTotal").textContent=evs.length+"회";
@@ -456,6 +485,12 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
         .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
         .then(function(d){all=all.concat(d.data||[]);var p=d.pagination||{};if(p.has_more&&p.next_cursor&&all.length<2000)return page(p.next_cursor);});
     }
+    fetch("https://codex-resets.com/api/v1/status").then(function(r){if(!r.ok)throw new Error(r.status);return r.json();}).then(function(d){
+      var x=(d&&d.data)||{},w=x.active_watch,sc=x.scheduled_reset;
+      SIG.watch=w&&Date.parse(w.expires_at)>Date.now()?w:null;
+      SIG.sched=sc&&sc.status==="scheduled"?sc:null;
+      render();
+    }).catch(function(){});
     page(null).then(function(){
       var ok=all.filter(function(r){return r&&isFinite(Date.parse(r.announced_at));});
       if(!ok.length)return;
