@@ -479,13 +479,14 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
   function toRaw(r){var k=kst(Date.parse(r.announced_at));return k.y+"-"+pad(k.mo)+"-"+pad(k.da)+"T"+pad(k.h)+":"+pad(k.mi)+" "+(r.reset_type==="banked"?B:R);}
   function loadLive(){
     if(!window.fetch)return;
-    var all=[];
+    // A per-minute query key keeps every visitor within ~1 minute of the source while still sharing the CDN cache.
+    var all=[],MIN=Math.floor(Date.now()/60000);
     function page(cur){
-      return fetch("https://codex-resets.com/api/v1/resets?limit=100&order=asc"+(cur?"&cursor="+encodeURIComponent(cur):""))
+      return fetch("https://codex-resets.com/api/v1/resets?limit=100&order=asc&t="+MIN+(cur?"&cursor="+encodeURIComponent(cur):""))
         .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
         .then(function(d){all=all.concat(d.data||[]);var p=d.pagination||{};if(p.has_more&&p.next_cursor&&all.length<2000)return page(p.next_cursor);});
     }
-    fetch("https://codex-resets.com/api/v1/status").then(function(r){if(!r.ok)throw new Error(r.status);return r.json();}).then(function(d){
+    fetch("https://codex-resets.com/api/v1/status?t="+Math.floor(Date.now()/60000)).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();}).then(function(d){
       var x=(d&&d.data)||{},w=x.active_watch,sc=x.scheduled_reset;
       SIG.watch=w&&Date.parse(w.expires_at)>Date.now()?w:null;
       SIG.sched=sc&&sc.status==="scheduled"?sc:null;
@@ -504,7 +505,10 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
   render();
   loadLive();
   setInterval(tick,1000);
-  setInterval(function(){loadLive();render();},5*60*1000);
+  setInterval(function(){loadLive();render();},2*60*1000);
+  // Phones pause background tabs; refresh the moment the page is shown again.
+  document.addEventListener("visibilitychange",function(){if(!document.hidden){loadLive();render();}});
+  window.addEventListener("pageshow",function(ev){if(ev.persisted){loadLive();render();}});
 })();
 </script>
 
