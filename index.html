@@ -209,7 +209,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     <div class="talk">
       <span class="signal" id="signal" hidden></span>
       <span class="bubble" id="bubble">…</span>
-      <p class="lbl">리셋이 가장 유력한 날</p>
+      <p class="lbl" id="heroLbl">리셋이 가장 유력한 날</p>
       <p class="answer"><span id="nextDate">…</span></p>
       <p class="range" id="nextRange"></p>
       <div class="next">
@@ -402,6 +402,13 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     $("nextDate").textContent=(bi===0?"오늘, ":"")+md(bd+H)+" ("+WD[kst(bd+H).wd]+")";
     $("cdLbl").textContent=bi===0?"바로 오늘이에요!":"그날까지";
     $("nextRange").textContent="이날 리셋될 확률 "+pct(daily[bi])+"로 가장 높아요 · "+(SIG.sched||SIG.watch?"Tibo의 리셋 신호를 반영했어요":"10번 중 8번은 "+md(m.last.ms+q10*D)+" ~ "+md(m.last.ms+q90*D)+" 사이에 와요");
+    $("heroLbl").textContent=resetToday?"오늘의 리셋":"리셋이 가장 유력한 날";
+    if(resetToday){
+      var lk=kst(m.last.ms);
+      $("nextDate").textContent="리셋 완료!";
+      $("nextRange").textContent=part(m.last.ms)+" "+(lk.h%12||12)+":"+pad(lk.mi)+"에 100% 초기화됐어요 · 다음은 "+md(bd+H)+" ("+WD[kst(bd+H).wd]+")이 가장 유력해요 ("+pct(daily[bi])+")";
+      $("cdLbl").textContent="다음 유력한 날까지";
+    }
 
     $("cLast").textContent=e<1/24?"방금 전":e<1?Math.round(e*24)+"시간 전":e.toFixed(1)+"일 전";
     $("cTotal").textContent=evs.length+"회";
