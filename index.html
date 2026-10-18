@@ -156,6 +156,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
 .signal{align-self:flex-start;background:var(--coral);color:var(--card);font-family:var(--f-num);font-weight:600;font-size:14px;border-radius:99px;padding:5px 14px}
 @media (max-width:720px){.signal{align-self:center}}
 @media (prefers-reduced-motion:no-preference){.signal{animation:sig 1.6s ease-in-out infinite}@keyframes sig{50%{box-shadow:0 0 0 6px var(--blush)}}}
+.stale{background:var(--peach);color:#3A2A12;border-radius:18px;padding:12px 18px;font-size:14px;line-height:1.5}
+.stale b{font-weight:700}
 .hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .credit{font-size:11px;color:var(--muted);margin-top:-26px}
 .credit a{color:var(--muted)}
@@ -192,6 +194,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     </div>
     <div class="hdr-r"><span class="src" id="srcPill">저장된 기록</span><span class="now" id="nowLabel">KST</span></div>
   </header>
+
+  <p class="stale" id="stale" hidden></p>
 
   <div class="card hero">
     <div class="buddy" aria-hidden="true">
@@ -296,11 +300,11 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     "2026-08-13T10:01 g,2026-08-21T20:43 b,2026-08-24T09:46 g,2026-08-25T23:30 g,2026-08-28T01:35 g,2026-08-30T05:43 g",
     "2026-08-31T11:29 g,2026-09-04T08:12 b,2026-09-05T09:39 b,2026-09-08T10:56 g,2026-09-12T17:09 g,2026-09-23T03:23 b",
     "2026-09-27T03:17 g,2026-09-30T04:00 b,2026-10-03T06:18 g,2026-10-07T12:35 g,2026-10-08T12:44 b,2026-10-11T13:01 g",
-    "2026-10-13T14:06 g"
+    "2026-10-13T14:06 g,2026-10-15T15:28 g,2026-10-18T06:12 g"
   ].join(",");
   var CHALLENGE_START=Date.parse("2026-10-05T12:00:00+09:00");
 
-  var SIG={watch:null,sched:null},LIVE=null,LATEST={text:"What would you like with your side of reset? It's done.",url:"https://x.com/thsottiaux/status/2109873287853707513",ms:Date.parse("2026-10-13T05:06:06Z")};
+  var SIG={watch:null,sched:null},LIVE=null,LIVE_FAIL=false,LATEST={text:"What would you like with your side of reset? It's done.",url:"https://x.com/thsottiaux/status/2109873287853707513",ms:Date.parse("2026-10-13T05:06:06Z")};
   function parse(s){var p=s.split(" "),t=p[0],timed=t.length>10;
     return {ms:Date.parse(timed?t+":00+09:00":t+"T12:00:00+09:00"),timed:timed,kind:p[1]};}
   function events(){
@@ -470,6 +474,9 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     $("fMonth").innerHTML="<em>"+bm.replace(/^\d+년 /,"")+"</em> "+mc[bm]+"번";
     $("fMonthSub").textContent=bm+" · 평균 "+(31/mc[bm]).toFixed(1)+"일에 한 번꼴";
 
+    var lastK=kst(evs[evs.length-1].ms),stl=$("stale");
+    stl.hidden=!!LIVE||!LIVE_FAIL;
+    if(!LIVE&&LIVE_FAIL)stl.innerHTML="<b>최신 리셋 정보를 아직 못 불러왔어요.</b> 지금은 저장된 기록("+lastK.mo+"/"+lastK.da+"까지)으로 보여주고 있어요. 잠시 뒤 새로고침해 보세요.";
     var sp=$("srcPill");sp.textContent=LIVE?"실시간":"저장된 기록";sp.className="src"+(LIVE?" on":"");
     tick();
   }
@@ -501,12 +508,12 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     }).catch(function(){});
     page(null).then(function(){
       var ok=all.filter(function(r){return r&&isFinite(Date.parse(r.announced_at));});
-      if(!ok.length)return;
+      if(!ok.length){LIVE_FAIL=true;render();return;}
       LIVE=ok.map(toRaw).join(",");
       var l=ok[ok.length-1];
       LATEST={text:String(l.text||"").replace(/\s*https:\/\/t\.co\/\S+/g,"").trim(),url:l.source&&l.source.url,ms:Date.parse(l.announced_at)};
       render();
-    }).catch(function(){});
+    }).catch(function(){LIVE_FAIL=true;render();});
   }
 
   render();
