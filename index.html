@@ -56,6 +56,8 @@ header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-betw
 .bubble{display:inline-block;align-self:flex-start;background:var(--ink);color:var(--card);border-radius:18px 18px 18px 4px;padding:6px 14px;font-size:14px}
 @media (max-width:720px){.bubble{align-self:center;border-radius:18px}}
 .answer{font-family:var(--f-display);font-weight:700;font-size:clamp(56px,9vw,84px);line-height:.8;color:var(--coral)}
+.talk .lbl.done{color:var(--ink)}
+.talk .lbl.done::first-letter{color:var(--mint)}
 .talk .lbl{font-size:14px;color:var(--muted);margin-bottom:-8px}
 .odds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .odds div{background:var(--mint-soft);border-radius:18px;padding:10px 12px;display:flex;flex-direction:column}
@@ -402,13 +404,11 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid
     $("nextDate").textContent=(bi===0?"오늘, ":"")+md(bd+H)+" ("+WD[kst(bd+H).wd]+")";
     $("cdLbl").textContent=bi===0?"바로 오늘이에요!":"그날까지";
     $("nextRange").textContent="이날 리셋될 확률 "+pct(daily[bi])+"로 가장 높아요 · "+(SIG.sched||SIG.watch?"Tibo의 리셋 신호를 반영했어요":"10번 중 8번은 "+md(m.last.ms+q10*D)+" ~ "+md(m.last.ms+q90*D)+" 사이에 와요");
-    $("heroLbl").textContent=resetToday?"오늘의 리셋":"리셋이 가장 유력한 날";
-    if(resetToday){
-      var lk=kst(m.last.ms);
-      $("nextDate").textContent="리셋 완료!";
-      $("nextRange").textContent=part(m.last.ms)+" "+(lk.h%12||12)+":"+pad(lk.mi)+"에 100% 초기화됐어요 · 다음은 "+md(bd+H)+" ("+WD[kst(bd+H).wd]+")이 가장 유력해요 ("+pct(daily[bi])+")";
-      $("cdLbl").textContent="다음 유력한 날까지";
-    }
+    // On a reset day the headline stays the next forecast; the reset itself is a small note above it.
+    var lk=kst(m.last.ms);
+    $("heroLbl").textContent=resetToday?"✓ 오늘 "+part(m.last.ms)+" "+(lk.h%12||12)+":"+pad(lk.mi)+" 리셋 완료 · 다음 리셋이 가장 유력한 날":"리셋이 가장 유력한 날";
+    $("heroLbl").className="lbl"+(resetToday?" done":"");
+    if(resetToday)$("cdLbl").textContent="다음 유력한 날까지";
 
     $("cLast").textContent=e<1/24?"방금 전":e<1?Math.round(e*24)+"시간 전":e.toFixed(1)+"일 전";
     $("cTotal").textContent=evs.length+"회";
